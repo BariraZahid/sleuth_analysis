@@ -1,0 +1,38 @@
+> basedir <-  "C:/Users/Barira/Documents/sleuth_analysis"
+> library("httr")
+> library("rhdf5")
+> library("sleuth")
+> library("BiocManager")
+
+> sample_id <- dir(file.path(basedir,"kallisto_quant_output"))
+> kal_dirs <- sapply(sample_id, function(id) file.path(base_dir, "kallisto_quant_output",id))
+
+> s2c <- read.table(file.path(basedir, "design.txt"), header = TRUE, stringsAsFactors = FALSE, sep = "\t")
+> s2c <- dplyr::select(s2c, sample = Run, disease_stage, TREATMENT)
+> s2c <- dplyr::mutate(s2c, path = kal_dirs)
+
+> BiocManager::install("biomaRT")
+> library(biomaRt)
+
+> marts <- listMarts()
+> marts
+> marts <- listMarts(host = "plants.ensembl.org")
+> plants_mart <- useMart("plants_mart", host = "plants.ensembl.org" )
+> listDatasets(plants_mart)
+> plants_mart <- useMart("plants_mart", dataset = "stuberosum_eg_gene", host="plants.ensembl.org" )
+> listAttributes(plants_mart)
+
+> t2g <- getBM(attributes = c("ensembl_transcript_id", "ensembl_gene_id", "external_gene_name"), mart=plants_mart)
+> ttg <- dplyr::rename(t2g, target_id= ensembl_transcript_id, ens_gene = ensembl_gene_id, ext_gene = external_gene_name)
+
+> so <- sleuth_prep (s2c, ~disease_stage, target_mapping = ttg, read_bootstrap = TRUE, extra_bootstrap_summary= TRUE)
+reading in kallisto results
+dropping unused factor levels
+....
+normalizing est_counts
+37172 targets passed the filter
+normalizing tpm
+merging in metadata
+summarizing bootstraps
+Error in parallel::mclapply(x, y, mc.cores = num_cores) : 
+  'mc.cores' > 1 is not supported on Windows
